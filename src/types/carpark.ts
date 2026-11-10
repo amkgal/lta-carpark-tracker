@@ -75,7 +75,13 @@ export interface CarparkFilterState {
 
 export interface RealtimeSyncStats {
   lastSyncTime: Date | null;
-  source: 'Data.gov.sg Live API' | 'Simulated Live Stream' | 'Custom Backend';
+  source:
+    | 'Data.gov.sg Live API'
+    | 'LTA DataMall v2 (Serverless)'
+    | 'Data.gov.sg Open Data (LTA Ready)'
+    | 'Simulated Live Stream'
+    | 'Custom Backend'
+    | string;
   totalCarparksTracked: number;
   totalLotsAvailable: number;
   totalCapacity: number;

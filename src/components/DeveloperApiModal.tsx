@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Code2, Copy, Check, Server, Database, Globe, Play, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Code2, Copy, Check, Server, Database, Globe, Play, ArrowRight, ShieldCheck, ExternalLink } from 'lucide-react';
 
 interface DeveloperApiModalProps {
   isOpen: boolean;
@@ -200,23 +200,64 @@ async def get_carpark_lot(cp_number: str):
             )}
           </div>
 
-          {/* REST API Endpoints Table */}
+          {/* Live Serverless Endpoints Table */}
           <div className="space-y-2">
-            <h3 className="font-bold text-white text-sm">Target REST Endpoints Specification</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-white text-sm">Active Serverless LTA Endpoints</h3>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                Serverless Active in /api
+              </span>
+            </div>
             <div className="bg-slate-950 rounded-xl border border-slate-800 divide-y divide-slate-800">
-              <div className="p-3 flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
+              {/* /api/carparkavailability */}
+              <div className="p-3.5 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       GET
                     </span>
-                    <span className="font-mono text-white text-xs">/api/carparks</span>
+                    <span className="font-mono text-white text-xs font-semibold">/api/carparkavailability</span>
                   </div>
-                  <p className="text-slate-400 text-[11px]">
-                    Returns full list of tracked carparks with coordinates, rates, clearance, and current lot availabilities.
+                  <p className="text-slate-400 text-[11px] leading-relaxed">
+                    Pulls live carpark lots directly from LTA DataMall v2 (<code className="text-slate-300">CarParkAvailabilityv2</code>) using your <code className="text-slate-300">AccountKey</code> header. Aggregates HDB, LTA, and URA lots across Singapore.
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-mono">
+                    Query options: <span className="text-slate-400">?all=true</span> (fetch all pages) or <span className="text-slate-400">?$skip=500</span>
                   </p>
                 </div>
-                <span className="text-slate-500 font-mono text-[11px] shrink-0">JSON Array</span>
+                <a
+                  href="/api/carparkavailability"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 text-[11px] font-semibold text-emerald-400 bg-slate-900 hover:bg-slate-800 rounded border border-slate-700 shrink-0 self-start text-center flex items-center gap-1"
+                >
+                  <span>Test Endpoint</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+              {/* /api/health */}
+              <div className="p-3.5 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                      GET
+                    </span>
+                    <span className="font-mono text-white text-xs font-semibold">/api/health</span>
+                  </div>
+                  <p className="text-slate-400 text-[11px] leading-relaxed">
+                    Health status check verifying uptime, environment state, and whether <code className="text-slate-300">LTA_DATAMALL_ACCOUNT_KEY</code> is loaded.
+                  </p>
+                </div>
+                <a
+                  href="/api/health"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 text-[11px] font-semibold text-cyan-400 bg-slate-900 hover:bg-slate-800 rounded border border-slate-700 shrink-0 self-start text-center flex items-center gap-1"
+                >
+                  <span>Test Endpoint</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
 
               <div className="p-3 flex items-start justify-between gap-4">

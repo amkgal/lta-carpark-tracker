@@ -753,11 +753,76 @@ export const INITIAL_CARPARKS: Carpark[] = [
 ];
 
 /**
- * Fetch real-time carpark availability directly from Singapore's official Data.gov.sg API.
- * Returns a map of carpark_number -> { available, total }
+ * Check if the serverless backend connection is healthy and if LTA DataMall key is set.
+ */
+export async function checkServerlessLtaStatus(): Promise<{
+  serverlessReady: boolean;
+  hasLtaAccountKey: boolean;
+  message: string;
+}> {
+  try {
+    const res = await fetch('/api/health');
+    if (!res.ok) {
+      return { serverlessReady: false, hasLtaAccountKey: false, message: 'Serverless health check returned ' + res.status };
+    }
+    const data = await res.json();
+    return {
+      serverlessReady: true,
+      hasLtaAccountKey: Boolean(data?.environment?.hasLtaAccountKey),
+      message: data?.environment?.hasLtaAccountKey
+        ? 'LTA DataMall AccountKey configured'
+        : 'LTA DataMall key not yet configured (fallback to Data.gov.sg active)',
+    };
+  } catch (err: any) {
+    return {
+      serverlessReady: false,
+      hasLtaAccountKey: false,
+      message: 'Serverless backend not responding: ' + (err?.message || 'Network error'),
+    };
+  }
+}
+
+/**
+ * Fetch real-time carpark availability:
+ * 1. Attempts the local serverless endpoint /api/carparkavailability (connected to LTA DataMall v2).
+ * 2. If AccountKey is not yet set or returns unconfigured status, falls back to Data.gov.sg open feed.
  */
 export async function fetchGovAvailabilityMap(): Promise<Map<string, { car?: { available: number; total: number }; motorcycle?: { available: number; total: number }; heavy?: { available: number; total: number } }>> {
   const result = new Map();
+
+  // 1. Try LTA DataMall via serverless endpoint /api/carparkavailability
+  try {
+    const ltaRes = await fetch('/api/carparkavailability');
+    if (ltaRes.ok) {
+      const ltaJson = await ltaRes.json();
+      if (ltaJson.success && Array.isArray(ltaJson.value) && ltaJson.value.length > 0) {
+        for (const item of ltaJson.value) {
+          const cpNum = item.CarParkID;
+          const avail = Number(item.AvailableLots);
+          const lotType = item.LotType; // C, H, Y
+          if (!cpNum || isNaN(avail)) continue;
+
+          const existing = result.get(cpNum) || {};
+          if (lotType === 'C') {
+            existing.car = { available: avail, total: Math.max(avail, existing.car?.total || 100) };
+          } else if (lotType === 'Y' || lotType === 'M') {
+            existing.motorcycle = { available: avail, total: Math.max(avail, existing.motorcycle?.total || 30) };
+          } else if (lotType === 'H') {
+            existing.heavy = { available: avail, total: Math.max(avail, existing.heavy?.total || 10) };
+          }
+          result.set(cpNum, existing);
+        }
+
+        if (result.size > 0) {
+          return result;
+        }
+      }
+    }
+  } catch (err) {
+    // Continue to Data.gov.sg fallback
+  }
+
+  // 2. Resilient Open Data fallback: Data.gov.sg
   try {
     const res = await fetch('https://api.data.gov.sg/v1/transport/carpark-availability', {
       headers: {
@@ -800,7 +865,7 @@ export async function fetchGovAvailabilityMap(): Promise<Map<string, { car?: { a
       }
     }
   } catch (err) {
-    console.warn('[ParkSG] Live Data.gov.sg API sync warning (will use resilient fallback):', err);
+    console.warn('[ParkSG] Live Open API sync warning (will use resilient fallback):', err);
   }
   return result;
 }

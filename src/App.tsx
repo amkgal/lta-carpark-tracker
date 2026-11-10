@@ -10,6 +10,7 @@ import {
   INITIAL_CARPARKS,
   fetchGovAvailabilityMap,
   updateCarparkLots,
+  checkServerlessLtaStatus,
 } from './services/carparkData';
 import { TopNav } from './components/TopNav';
 import { HeroSection } from './components/HeroSection';
@@ -104,14 +105,17 @@ export default function App() {
     });
   };
 
-  // Perform Live Sync with Data.gov.sg or Backend
+  // Perform Live Sync with LTA DataMall Serverless endpoint or Data.gov.sg
   const handleRefresh = useCallback(async () => {
     setSyncStats((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      // 1. Fetch live Singapore Government Data
+      // 1. Check LTA DataMall Serverless connection status
+      const { hasLtaAccountKey } = await checkServerlessLtaStatus().catch(() => ({ hasLtaAccountKey: false }));
+
+      // 2. Fetch live data (tries /api/carparkavailability first, then open fallback)
       const govMap = await fetchGovAvailabilityMap();
 
-      // 2. Merge into current carpark collection
+      // 3. Merge into current carpark collection
       setCarparks((prev) => {
         const updated = updateCarparkLots(prev, govMap);
 
@@ -121,7 +125,7 @@ export default function App() {
 
         setSyncStats({
           lastSyncTime: new Date(),
-          source: 'Data.gov.sg Live API',
+          source: hasLtaAccountKey ? 'LTA DataMall v2 (Serverless)' : 'Data.gov.sg Open Data (LTA Ready)',
           totalCarparksTracked: updated.length,
           totalLotsAvailable: totalAvail,
           totalCapacity: totalCap,
@@ -132,7 +136,7 @@ export default function App() {
         return updated;
       });
 
-      showToast('Synced live lot availabilities with Singapore Government API');
+      showToast(hasLtaAccountKey ? 'Synced with LTA DataMall v2 Serverless' : 'Synced live lot availabilities');
     } catch (err: any) {
       setSyncStats((prev) => ({
         ...prev,
